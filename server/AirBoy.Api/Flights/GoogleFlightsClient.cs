@@ -41,8 +41,11 @@ public sealed partial class GoogleFlightsClient(HttpClient http)
         if (start < 0 || end <= start)
             throw new FormatException("Unexpected script format");
         var data = js[(start + 5)..end];
+        // Google sometimes answers with an ErrorResponse instead of results (often from
+        // datacenter IPs). A day without flights still gets a normal payload, so this is
+        // a transient failure: retry it and never cache it as "no flights".
         if (data.TrimEnd().EndsWith("errorHasStatus: true"))
-            return [];
+            throw new GoogleBlockedException("Google returned an error response");
 
         var payload = JsonNode.Parse(data) as JsonArray ?? throw new FormatException("Not a JSON array");
         var results = new List<FlightOption>();

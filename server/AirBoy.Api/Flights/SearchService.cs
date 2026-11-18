@@ -22,6 +22,8 @@ public sealed class SearchService(
     ILogger<SearchService> log)
 {
     public const string CacheTag = "flights";
+    // Google's transient error responses can hit over half the requests from a server IP.
+    private const int MaxAttempts = 6;
 
     // Global gate: all searches together never exceed the configured parallelism.
     private static SemaphoreSlim? _gate;
@@ -58,7 +60,7 @@ public sealed class SearchService(
         if (DateOnly.Parse(q.Date) < DateOnly.FromDateTime(DateTime.Today))
             return new LegResult(q.From, q.To, q.Date, url, false, "Date is in the past", []);
 
-        var key = $"leg:v1:{q.From}:{q.To}:{q.Date}:{q.MaxStops}:{q.Adults}";
+        var key = $"leg:v2:{q.From}:{q.To}:{q.Date}:{q.MaxStops}:{q.Adults}";
         if (fresh) await cache.RemoveAsync(key, ct);
 
         var fetched = false;
@@ -93,10 +95,10 @@ public sealed class SearchService(
                     log.LogInformation("Fetched {From}->{To} {Date}: {Count} options", q.From, q.To, q.Date, result.Count);
                     return result;
                 }
-                catch (Exception e) when (attempt < 3 && e is GoogleBlockedException or HttpRequestException or FormatException)
+                catch (Exception e) when (attempt < MaxAttempts && e is GoogleBlockedException or HttpRequestException or FormatException)
                 {
                     log.LogInformation("Retry {Attempt} for {From}->{To} {Date}: {Error}", attempt, q.From, q.To, q.Date, e.Message);
-                    await Task.Delay(TimeSpan.FromSeconds(2 * attempt), ct);
+                    await Task.Delay(TimeSpan.FromSeconds(attempt), ct);
                 }
                 finally
                 {
