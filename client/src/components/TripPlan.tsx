@@ -15,7 +15,8 @@ import {
   Search,
   Trash2,
   Coins,
-  UserPlus,
+  Minus,
+  Users,
   WandSparkles,
   X,
 } from "lucide-react"
@@ -33,7 +34,7 @@ import { Progress } from "@/components/ui/progress"
 import { fmtDate, fmtEuro, fmtRange, iso } from "@/lib/format"
 import { optimizePlan } from "@/lib/optimize"
 import { placeCodes, placeName, routesFor } from "@/lib/places"
-import { chosenFits, planTotals, travelerCount, uid } from "@/lib/plans"
+import { chosenFits, pax, planTotals, uid } from "@/lib/plans"
 import { streamLegs } from "@/lib/stream"
 import { searchUrl, validateSearch } from "@/lib/trips"
 import type { AppSettings, LegResult, Plan, PlanLeg, SearchQuery } from "@/lib/types"
@@ -93,7 +94,7 @@ export function TripPlan(p: Props) {
       to: last ? last.from : p.query.to,
       dateFrom: start,
       dateTo: last ? iso(addDays(parseISO(start), 6)) : p.query.dateTo,
-      travelers: last ? last.travelers : plan.travelers.map((x) => x.id),
+      passengers: last ? pax(last) : 1,
       chosen: null,
     }
     set({ legs: [...plan.legs, leg] })
@@ -178,8 +179,6 @@ export function TripPlan(p: Props) {
         </div>
       </header>
 
-      <Travelers plan={plan} onPlan={p.onPlan} />
-
       <div className="relative mt-4 space-y-3">
         {plan.legs.length === 0 && <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">{t("plan.empty")}</div>}
         {plan.legs.map((leg, i) => (
@@ -187,7 +186,6 @@ export function TripPlan(p: Props) {
             key={leg.id}
             index={i}
             leg={leg}
-            plan={plan}
             settings={s}
             isLast={i === plan.legs.length - 1}
             targeted={p.targetLegId === leg.id}
@@ -248,54 +246,9 @@ export function TripPlan(p: Props) {
   )
 }
 
-function Travelers({ plan, onPlan }: { plan: Plan; onPlan: (p: Plan) => void }) {
-  const { t } = useTranslation()
-  const rename = (id: string, name: string) => onPlan({ ...plan, travelers: plan.travelers.map((x) => (x.id === id ? { ...x, name } : x)) })
-  const remove = (id: string) =>
-    onPlan({
-      ...plan,
-      travelers: plan.travelers.filter((x) => x.id !== id),
-      legs: plan.legs.map((l) => ({ ...l, travelers: l.travelers.filter((x) => x !== id) })),
-    })
-  const add = () => {
-    const traveler = { id: uid(), name: t("plan.companion", { n: plan.travelers.length + 1 }) }
-    onPlan({ ...plan, travelers: [...plan.travelers, traveler] })
-  }
-
-  return (
-    <div className="mt-4">
-      <div className="mb-2 text-sm font-semibold">{t("plan.travelers")}</div>
-      <div className="flex flex-wrap items-center gap-2">
-        {plan.travelers.map((x, i) => (
-          <span key={x.id} className="inline-flex h-9 items-center gap-2 rounded-full border bg-white pr-1 pl-1">
-            <span className="flex size-7 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: color(i) }}>
-              {(x.name.trim()[0] ?? "?").toUpperCase()}
-            </span>
-            <input
-              className="w-28 bg-transparent text-sm outline-none"
-              value={x.name}
-              onChange={(e) => rename(x.id, e.target.value)}
-              aria-label={t("plan.travelerName")}
-            />
-            {plan.travelers.length > 1 && (
-              <Button size="icon-xs" variant="ghost" onClick={() => remove(x.id)} aria-label={t("plan.removeTraveler")}>
-                <X />
-              </Button>
-            )}
-          </span>
-        ))}
-        <Button size="sm" variant="outline" className="rounded-full" onClick={add}>
-          <UserPlus /> {t("plan.addTraveler")}
-        </Button>
-      </div>
-    </div>
-  )
-}
-
 type LegProps = {
   index: number
   leg: PlanLeg
-  plan: Plan
   settings: AppSettings
   isLast: boolean
   targeted: boolean
@@ -307,10 +260,9 @@ type LegProps = {
   onFind: () => void
 }
 
-function LegCard({ index, leg, plan, settings: s, isLast, targeted, editing, onEdit, onChange, onDelete, onMove, onFind }: LegProps) {
+function LegCard({ index, leg, settings: s, isLast, targeted, editing, onEdit, onChange, onDelete, onMove, onFind }: LegProps) {
   const { t } = useTranslation()
   const c = leg.chosen
-  const names = plan.travelers.filter((x) => leg.travelers.includes(x.id)).map((x) => x.name)
 
   return (
     <div className={cn("rounded-xl border bg-white p-3 transition-shadow", targeted && "ring-2 ring-primary", editing && "shadow-md")}>
@@ -329,8 +281,15 @@ function LegCard({ index, leg, plan, settings: s, isLast, targeted, editing, onE
               {placeName(leg.from, s)} → {placeName(leg.to, s)}
             </span>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {names.join(" + ") || t("plan.noTravelers")} ({t("plan.passengers", { count: travelerCount(leg) })})
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Users className="size-3.5" />
+            <Button size="icon-xs" variant="ghost" onClick={() => onChange({ passengers: pax(leg) - 1 })} disabled={pax(leg) <= 1} aria-label={t("plan.fewer")}>
+              <Minus />
+            </Button>
+            <span className="min-w-20 text-center tabular-nums">{t("plan.passengers", { count: pax(leg) })}</span>
+            <Button size="icon-xs" variant="ghost" onClick={() => onChange({ passengers: pax(leg) + 1 })} disabled={pax(leg) >= 9} aria-label={t("plan.more")}>
+              <Plus />
+            </Button>
           </div>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <CalendarDays className="size-3.5" />
@@ -363,7 +322,7 @@ function LegCard({ index, leg, plan, settings: s, isLast, targeted, editing, onE
         <div className="flex flex-col items-end gap-1">
           {c && (
             <div className="text-right">
-              <div className="rounded-md bg-success/10 px-2 py-0.5 text-lg font-bold text-success tabular-nums">{fmtEuro(c.flight.price * travelerCount(leg))}</div>
+              <div className="rounded-md bg-success/10 px-2 py-0.5 text-lg font-bold text-success tabular-nums">{fmtEuro(c.flight.price * pax(leg))}</div>
               <div className="text-xs text-muted-foreground">{c.flight.airlines.join(", ")}</div>
             </div>
           )}
@@ -397,21 +356,6 @@ function LegCard({ index, leg, plan, settings: s, isLast, targeted, editing, onE
           </Field>
           <Field label={t("plan.window")}>
             <DateRangeField from={leg.dateFrom} to={leg.dateTo} onChange={(dateFrom, dateTo) => onChange({ dateFrom, dateTo })} />
-          </Field>
-          <Field label={t("plan.travelers")}>
-            <div className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2">
-              {plan.travelers.map((x) => (
-                <Label key={x.id} className="font-normal">
-                  <Checkbox
-                    checked={leg.travelers.includes(x.id)}
-                    // A flight always has at least one traveler.
-                    disabled={leg.travelers.length === 1 && leg.travelers.includes(x.id)}
-                    onCheckedChange={(v) => onChange({ travelers: v ? [...leg.travelers, x.id] : leg.travelers.filter((id) => id !== x.id) })}
-                  />
-                  {x.name}
-                </Label>
-              ))}
-            </div>
           </Field>
           <div className="flex justify-end sm:col-span-2">
             <Button size="sm" onClick={onEdit}>

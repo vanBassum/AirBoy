@@ -64,8 +64,6 @@ export type SearchQuery = {
 
 export type LegFlight = { leg: LegResult; flight: FlightOption }
 
-export type Traveler = { id: string; name: string }
-
 export type ChosenFlight = {
   from: string
   to: string
@@ -81,14 +79,14 @@ export type PlanLeg = {
   to: Place
   dateFrom: string
   dateTo: string
-  travelers: string[]
+  /** People on this flight; prices are per person. */
+  passengers: number
   chosen: ChosenFlight | null
 }
 
 export type Plan = {
   id: string
   name: string
-  travelers: Traveler[]
   legs: PlanLeg[]
   /** All flights touching the home group use the same airport (the car stays there). */
   sameHomeAirport: boolean

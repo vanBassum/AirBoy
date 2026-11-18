@@ -11,13 +11,16 @@ export function newPlan(): Plan {
   return {
     id: uid(),
     name: i18n.t("plan.defaultName"),
-    travelers: [{ id: uid(), name: i18n.t("plan.you") }],
     legs: [],
     sameHomeAirport: true,
   }
 }
 
-export const travelerCount = (leg: PlanLeg) => Math.max(1, leg.travelers.length)
+/** Passengers on a leg (plans saved before passenger counts had a travelers list). */
+export const pax = (leg: PlanLeg) => {
+  const old = (leg as PlanLeg & { travelers?: unknown[] }).travelers
+  return Math.min(9, Math.max(1, leg.passengers ?? old?.length ?? 1))
+}
 
 /** Inclusive number of calendar days from a to b. */
 export const spanDays = (a: string, b: string) => differenceInCalendarDays(parseISO(b), parseISO(a)) + 1
@@ -68,7 +71,7 @@ export function parkingCost(chosen: ChosenFlight[], s: AppSettings) {
 
 export function planTotals(plan: Plan, s: AppSettings) {
   const chosenLegs = plan.legs.filter((l) => l.chosen)
-  const flights = chosenLegs.reduce((sum, l) => sum + l.chosen!.flight.price * travelerCount(l), 0)
+  const flights = chosenLegs.reduce((sum, l) => sum + l.chosen!.flight.price * pax(l), 0)
   const parking = parkingCost(
     chosenLegs.map((l) => l.chosen!),
     s,

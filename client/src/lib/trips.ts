@@ -9,7 +9,7 @@ import type { AppSettings, Filters, FlightOption, LegFlight, LegResult, Place } 
 const SCAN_MAX_STOPS = 1
 const MAX_SEARCHES = 600
 
-/** Prices are always per person (adults=1); the plan multiplies by travelers. */
+/** Prices are always per person (adults=1); the plan multiplies by passengers. */
 export function searchUrl(routes: [string, string][], dateFrom: string, dateTo: string, fresh: boolean) {
   const p = new URLSearchParams({
     routes: routes.map(([a, b]) => `${a}-${b}`).join(","),

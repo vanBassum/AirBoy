@@ -1,5 +1,5 @@
 import { homeAirports, touchesHome } from "./places"
-import { parkingIntervals, spanDays, travelerCount } from "./plans"
+import { parkingIntervals, pax, spanDays } from "./plans"
 import { passes } from "./trips"
 import type { AppSettings, ChosenFlight, LegResult, Plan, PlanLeg } from "./types"
 
@@ -43,7 +43,7 @@ function solve(plan: Plan, results: Record<string, LegResult[]>, s: AppSettings,
   const chargeParking = home !== null
 
   const nodeCost = (i: number, c: ChosenFlight) =>
-    c.flight.price * travelerCount(legs[i]) +
+    c.flight.price * pax(legs[i]) +
     (chargeParking && closes[i] ? rate * spanDays(c.flight.departureDate, c.flight.arrivalDate) + travel : 0)
 
   let cost = cands[0].map((c) => nodeCost(0, c))

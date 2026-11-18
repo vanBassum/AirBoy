@@ -8,7 +8,7 @@ import { AirportsPage } from "@/pages/AirportsPage"
 import { SavedPlansPage } from "@/pages/SavedPlansPage"
 import { SettingsPage } from "@/pages/SettingsPage"
 import { placeName, routesFor } from "@/lib/places"
-import { newPlan, planKey, savePlan, travelerCount, uid } from "@/lib/plans"
+import { newPlan, pax, planKey, savePlan, uid } from "@/lib/plans"
 import { defaultSearch, useSettings } from "@/lib/settings"
 import { searchUrl, validateSearch } from "@/lib/trips"
 import type { FlightOption, LegResult, Plan, PlanLeg, SearchQuery } from "@/lib/types"
@@ -80,10 +80,14 @@ export default function App() {
       to: query.to,
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
-      travelers: plan.travelers.map((x) => x.id),
+      passengers: plan.legs.at(-1) ? pax(plan.legs.at(-1)!) : 1,
       chosen,
     }
-    setPlan({ ...plan, legs: [...plan.legs, newLeg] })
+    // Insert in date order, so the plan rarely needs reordering by hand.
+    const legDate = (l: PlanLeg) => l.chosen?.flight.departureDate ?? l.dateFrom
+    const at = plan.legs.findIndex((l) => legDate(l) > flight.departureDate)
+    const legs = at < 0 ? [...plan.legs, newLeg] : [...plan.legs.slice(0, at), newLeg, ...plan.legs.slice(at)]
+    setPlan({ ...plan, legs })
   }
 
   function openPlan(p: Plan) {
@@ -158,7 +162,7 @@ export default function App() {
                 targetLeg
                   ? {
                       index: target,
-                      label: `${placeName(targetLeg.from, settings)} → ${placeName(targetLeg.to, settings)} (${t("plan.passengers", { count: travelerCount(targetLeg) })})`,
+                      label: `${placeName(targetLeg.from, settings)} → ${placeName(targetLeg.to, settings)} (${t("plan.passengers", { count: pax(targetLeg) })})`,
                     }
                   : null
               }

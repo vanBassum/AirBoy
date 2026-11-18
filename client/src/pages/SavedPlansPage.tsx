@@ -50,7 +50,7 @@ export function SavedPlansPage({ settings: s, currentId, onOpen }: { settings: A
                 </div>
                 <div className="truncate text-sm text-muted-foreground">{route || t("plan.empty")}</div>
                 <div className="text-xs text-muted-foreground">
-                  {t("plan.legsCount", { count: totals.legs })} · {t("plan.travelersCount", { count: p.travelers.length })}
+                  {t("plan.legsCount", { count: totals.legs })}
                   {p.updatedAt && ` · ${t("saved.updated", { date: fmtDateLong(p.updatedAt.slice(0, 10)) })}`}
                 </div>
               </div>
