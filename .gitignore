@@ -1,0 +1,7 @@
+bin/
+obj/
+node_modules/
+server/AirBoy.Api/wwwroot/
+server/AirBoy.Api/data/
+*.user
+.vs/
