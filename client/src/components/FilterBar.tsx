@@ -101,7 +101,7 @@ function ListFilter({ label, summary, disabled, children }: { label: string; sum
     <Popover>
       <PopoverTrigger
         disabled={disabled}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-white px-2.5 hover:bg-accent disabled:opacity-50"
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-card px-2.5 hover:bg-accent disabled:opacity-50"
       >
         {label}: <span className="font-semibold tabular-nums">{summary}</span>
         <ChevronDown className="size-3.5 text-muted-foreground" />

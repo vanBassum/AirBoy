@@ -1,4 +1,4 @@
-import { Bookmark, CalendarRange, Car, Plane, Settings } from "lucide-react"
+import { Bookmark, CalendarRange, Car, Plane, Search, Settings } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -10,6 +10,7 @@ import { SettingsPage } from "@/pages/SettingsPage"
 import { placeName, routesFor } from "@/lib/places"
 import { newPlan, pax, planKey, savePlan, uid } from "@/lib/plans"
 import { defaultSearch, useSettings } from "@/lib/settings"
+import { useTheme } from "@/lib/theme"
 import { searchUrl, validateSearch } from "@/lib/trips"
 import type { FlightOption, LegResult, Plan, PlanLeg, SearchQuery } from "@/lib/types"
 import { useLocalState } from "@/lib/useLocalState"
@@ -47,6 +48,9 @@ export default function App() {
   const [compact, setCompact] = useLocalState("airboy.compact", false)
   const [fresh, setFresh] = useLocalState("airboy.fresh", false)
   const [targetLegId, setTargetLegId] = useState<string | null>(null)
+  const [theme, setTheme] = useTheme()
+  // Below xl the two panels don't fit side by side: show one at a time.
+  const [mobileTab, setMobileTab] = useState<"find" | "trip">("find")
   const { state, start, stop } = useSearch()
 
   const dirty = plan.legs.length > 0 && planKey(plan) !== savedKey
@@ -63,6 +67,7 @@ export default function App() {
     setTargetLegId(leg.id)
     setQuery(q)
     runSearch(q)
+    setMobileTab("find")
     go("#/")
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -72,6 +77,7 @@ export default function App() {
     if (targetLeg) {
       setPlan({ ...plan, legs: plan.legs.map((l) => (l.id === targetLeg.id ? { ...l, chosen } : l)) })
       setTargetLegId(null)
+      setMobileTab("trip")
       return
     }
     const newLeg: PlanLeg = {
@@ -95,6 +101,7 @@ export default function App() {
     setPlan(p)
     setSavedKey(planKey(p))
     setTargetLegId(null)
+    setMobileTab("trip")
     go("#/")
   }
 
@@ -112,29 +119,32 @@ export default function App() {
   }
 
   return (
-    <div className="relative min-h-svh overflow-hidden bg-[linear-gradient(180deg,#e6defa_0%,#efe9fb_30%,#f6f3fb_60%,#f7f5fa_100%)]">
+    <div className="relative min-h-svh overflow-hidden bg-(image:--page-bg)">
       <Backdrop />
-      <main className="relative mx-auto max-w-[110rem] space-y-6 px-4 py-6 sm:px-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Plane className="size-12 -rotate-12 fill-primary text-primary" />
+      <main className="relative mx-auto max-w-[110rem] space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
+        <header className="flex flex-wrap items-center justify-between gap-3 sm:items-start sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Plane className="size-9 -rotate-12 fill-primary text-primary sm:size-12" />
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-[oklch(0.2_0.06_280)]">AirBoy</h1>
-              <p className="text-lg text-[oklch(0.3_0.08_280)]">{t("app.tagline")}</p>
+              <h1 className="text-3xl font-bold tracking-tight text-(--heading) sm:text-4xl">AirBoy</h1>
+              <p className="hidden text-lg text-(--tagline) sm:block">{t("app.tagline")}</p>
             </div>
           </div>
-          <nav className="flex flex-wrap gap-1 rounded-xl bg-white/70 p-1 shadow-sm backdrop-blur">
+          <nav className="flex gap-1 rounded-xl bg-white/70 p-1 shadow-sm backdrop-blur dark:bg-card/70">
             {PAGES.map(({ hash: h, icon: Icon, key }) => (
               <a
                 key={h}
                 href={h}
+                title={t(key)}
+                aria-label={t(key)}
                 className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-lg px-4 font-medium transition-colors",
-                  hash === h ? "bg-primary text-primary-foreground shadow" : "text-foreground hover:bg-white",
+                  "inline-flex h-10 items-center gap-2 rounded-lg px-3 font-medium transition-colors sm:h-11 sm:px-4",
+                  hash === h ? "bg-primary text-primary-foreground shadow" : "text-foreground hover:bg-white dark:hover:bg-accent",
                 )}
               >
                 <Icon className="size-5" />
-                {t(key)}
+                {/* Phones: only the active page shows its label. */}
+                <span className={cn(hash !== h && "hidden lg:inline")}>{t(key)}</span>
               </a>
             ))}
           </nav>
@@ -145,31 +155,58 @@ export default function App() {
         ) : hash === "#/airports" ? (
           <AirportsPage settings={settings} onSettings={setSettings} />
         ) : hash === "#/settings" ? (
-          <SettingsPage compact={compact} onCompact={setCompact} fresh={fresh} onFresh={setFresh} />
+          <SettingsPage compact={compact} onCompact={setCompact} fresh={fresh} onFresh={setFresh} theme={theme} onTheme={setTheme} />
         ) : (
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_36rem]">
-            <FindFlights
-              settings={settings}
-              onSettings={setSettings}
-              query={query}
-              onQuery={setQuery}
-              search={state}
-              onSearch={() => runSearch(query)}
-              onStop={stop}
-              compact={compact}
-              onCompact={setCompact}
-              target={
-                targetLeg
-                  ? {
-                      index: target,
-                      label: `${placeName(targetLeg.from, settings)} → ${placeName(targetLeg.to, settings)} (${t("plan.passengers", { count: pax(targetLeg) })})`,
-                    }
-                  : null
-              }
-              onCancelTarget={() => setTargetLegId(null)}
-              onAdd={addFlight}
-            />
-            <div className="xl:sticky xl:top-6">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_36rem]">
+            <div className="flex rounded-xl bg-white/70 p-1 shadow-sm backdrop-blur xl:hidden dark:bg-card/70" role="tablist">
+              {(
+                [
+                  ["find", Search, t("find.title")],
+                  ["trip", CalendarRange, t("nav.trip")],
+                ] as const
+              ).map(([tab, Icon, label]) => (
+                <button
+                  key={tab}
+                  role="tab"
+                  aria-selected={mobileTab === tab}
+                  onClick={() => setMobileTab(tab)}
+                  className={cn(
+                    "inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+                    mobileTab === tab ? "bg-primary text-primary-foreground shadow" : "text-foreground hover:bg-white dark:hover:bg-accent",
+                  )}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                  {tab === "trip" && plan.legs.length > 0 && (
+                    <span className="rounded-full bg-current/15 px-1.5 text-xs tabular-nums">{plan.legs.length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className={cn(mobileTab !== "find" && "hidden xl:block")}>
+              <FindFlights
+                settings={settings}
+                onSettings={setSettings}
+                query={query}
+                onQuery={setQuery}
+                search={state}
+                onSearch={() => runSearch(query)}
+                onStop={stop}
+                compact={compact}
+                onCompact={setCompact}
+                target={
+                  targetLeg
+                    ? {
+                        index: target,
+                        label: `${placeName(targetLeg.from, settings)} → ${placeName(targetLeg.to, settings)} (${t("plan.passengers", { count: pax(targetLeg) })})`,
+                      }
+                    : null
+                }
+                onCancelTarget={() => setTargetLegId(null)}
+                onAdd={addFlight}
+              />
+            </div>
+            <div className={cn("xl:sticky xl:top-6", mobileTab !== "trip" && "hidden xl:block")}>
               <TripPlan
                 plan={plan}
                 onPlan={setPlan}
@@ -195,20 +232,20 @@ export default function App() {
 function Backdrop() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[7rem]">
-      <div className="absolute -top-24 right-0 h-80 w-[60%] rounded-full bg-[radial-gradient(closest-side,#f6d3e4,transparent)] opacity-80" />
+      <div className="absolute -top-24 right-0 h-80 w-[60%] rounded-full bg-[radial-gradient(closest-side,var(--glow),transparent)] opacity-80" />
       <svg className="absolute right-0 bottom-0 h-28 w-full max-w-5xl" viewBox="0 0 1000 220" preserveAspectRatio="none">
         <defs>
           <linearGradient id="m1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#b9abe6" />
-            <stop offset="1" stopColor="#e9e2f8" stopOpacity="0" />
+            <stop offset="0" style={{ stopColor: "var(--mountain-1)" }} />
+            <stop offset="1" style={{ stopColor: "var(--mountain-1)", stopOpacity: 0 }} />
           </linearGradient>
           <linearGradient id="m2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#8f7fd0" />
-            <stop offset="1" stopColor="#d9d0f3" stopOpacity="0" />
+            <stop offset="0" style={{ stopColor: "var(--mountain-2)" }} />
+            <stop offset="1" style={{ stopColor: "var(--mountain-2)", stopOpacity: 0 }} />
           </linearGradient>
         </defs>
         <path d="M0 220 L120 150 L210 170 L330 95 L420 140 L520 60 L600 105 L700 40 L790 110 L880 80 L1000 130 L1000 220 Z" fill="url(#m1)" />
-        <path d="M680 58 L700 40 L722 60 L708 56 L700 64 L692 55 Z" fill="#ffffff" opacity="0.8" />
+        <path d="M680 58 L700 40 L722 60 L708 56 L700 64 L692 55 Z" style={{ fill: "var(--snow)" }} opacity="0.8" />
         <path d="M200 220 L330 160 L430 185 L560 120 L660 165 L760 125 L880 170 L1000 150 L1000 220 Z" fill="url(#m2)" opacity="0.7" />
       </svg>
     </div>

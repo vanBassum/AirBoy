@@ -53,7 +53,7 @@ export function DateRangeField({ from, to, onChange }: Props) {
         </span>
         <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t("dates.daysShort", { count: e - s + 1 })}</span>
       </PopoverTrigger>
-      <PopoverContent className="w-[23rem] p-0" align="start">
+      <PopoverContent className="w-[min(23rem,calc(100vw-1rem))] p-0" align="start">
         {open && <RangeCalendar start={s} end={e} onCommit={(a, b) => onChange(toIso(a), toIso(b))} onDone={() => setOpen(false)} />}
       </PopoverContent>
     </Popover>
@@ -84,6 +84,8 @@ function RangeCalendar({
   const rangeRef = useRef(range)
   rangeRef.current = range
   const drag = useRef<Drag | null>(null)
+  // Touch on a day outside the range: only a tap (not the start of a scroll) moves an edge there.
+  const tap = useRef<number | null>(null)
   const pointer = useRef({ x: 0, y: 0 })
   const scroller = useRef<HTMLDivElement>(null)
 
@@ -108,7 +110,9 @@ function RangeCalendar({
     const el = scroller.current
     if (!el) return null
     const r = el.getBoundingClientRect()
-    const cx = Math.min(Math.max(x, r.left + 60), r.right - 8)
+    // Skip the month-label column (narrower on phones).
+    const firstDay = el.querySelector("[data-day]")?.getBoundingClientRect().left ?? r.left + 60
+    const cx = Math.min(Math.max(x, firstDay + 4), r.right - 8)
     const cy = Math.min(Math.max(y, r.top + 4), r.bottom - 4)
     const cell = document.elementFromPoint(cx, cy)?.closest<HTMLElement>("[data-day]")
     return cell ? Number(cell.dataset.day) : null
@@ -145,10 +149,14 @@ function RangeCalendar({
   function onPointerDown(ev: React.PointerEvent) {
     const d = dayAt(ev.clientX, ev.clientY)
     if (d === null || d < today) return
+    const { s, e } = rangeRef.current
+    if (ev.pointerType === "touch" && (d < s || d > e)) {
+      tap.current = d
+      return
+    }
     ev.preventDefault()
     scroller.current?.setPointerCapture(ev.pointerId)
     pointer.current = { x: ev.clientX, y: ev.clientY }
-    const { s, e } = rangeRef.current
     if (d === s && s !== e) drag.current = { kind: "edge", anchor: e }
     else if (d === e) drag.current = { kind: "edge", anchor: s }
     else if (d > s && d < e) drag.current = { kind: "move", offset: d - s, length: e - s }
@@ -167,6 +175,13 @@ function RangeCalendar({
   }
 
   function onPointerUp() {
+    if (tap.current !== null) {
+      const { s, e } = rangeRef.current
+      const d = tap.current
+      tap.current = null
+      drag.current = { kind: "edge", anchor: Math.abs(d - s) <= Math.abs(d - e) ? e : s }
+      apply(d)
+    }
     if (!drag.current) return
     drag.current = null
     onCommit(rangeRef.current.s, rangeRef.current.e)
@@ -184,7 +199,7 @@ function RangeCalendar({
         </div>
         <p className="text-xs text-muted-foreground">{t("dates.dragHint")}</p>
       </div>
-      <div className="grid grid-cols-[3.75rem_repeat(7,1fr)] px-2 pt-2 text-center text-xs text-muted-foreground">
+      <div className="grid grid-cols-[2.75rem_repeat(7,1fr)] sm:grid-cols-[3.75rem_repeat(7,1fr)] px-2 pt-2 text-center text-xs text-muted-foreground">
         <span />
         {WEEKDAYS.map((d) => (
           <span key={d}>{fmt(d, { weekday: "short" })}</span>
@@ -192,16 +207,20 @@ function RangeCalendar({
       </div>
       <div
         ref={scroller}
-        className="relative h-80 touch-none overflow-y-auto px-2 pb-2"
+        className="relative h-80 touch-pan-y overflow-y-auto px-2 pb-2"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={() => {
+          // The browser took over (scrolling): a pending tap was no tap.
+          tap.current = null
+          onPointerUp()
+        }}
       >
         {weeks.map((week) => {
           const first = week.find((d) => dateOf(d).getUTCDate() === 1)
           return (
-            <div key={week[0]} className="grid grid-cols-[3.75rem_repeat(7,1fr)] gap-y-0.5 py-px">
+            <div key={week[0]} className="grid grid-cols-[2.75rem_repeat(7,1fr)] sm:grid-cols-[3.75rem_repeat(7,1fr)] gap-y-0.5 py-px">
               <span className="self-center text-xs font-semibold text-primary">
                 {first !== undefined && fmt(first, { month: "short", year: "2-digit" })}
               </span>
@@ -217,6 +236,7 @@ function RangeCalendar({
                     className={cn(
                       "relative flex h-9 items-center justify-center text-sm tabular-nums",
                       cursor(d),
+                      inRange && "touch-none",
                       oddMonth && !inRange && "bg-muted/70",
                       d < today && "text-muted-foreground/40",
                       inRange && !edge && "bg-primary/15 text-primary",

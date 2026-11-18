@@ -30,13 +30,14 @@ export function AirportTag({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-1 rounded-md border font-bold tracking-wide tabular-nums",
+        // Lighter text on dark backgrounds so the colour stays readable.
+        "inline-flex shrink-0 items-center justify-center gap-1 rounded-md border font-bold tracking-wide tabular-nums text-(--c) dark:text-[color-mix(in_oklch,var(--c)_60%,white)]",
         size === "sm" && "px-1 py-0 text-[10px]",
         size === "md" && "px-1.5 py-0.5 text-xs",
         size === "lg" && "h-8 w-14 text-sm",
         className,
       )}
-      style={{ color: c, background: `${c}1a`, borderColor: `${c}55` }}
+      style={{ "--c": c, background: `${c}26`, borderColor: `${c}66` } as React.CSSProperties}
     >
       {code}
     </span>

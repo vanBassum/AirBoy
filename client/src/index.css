@@ -50,6 +50,14 @@
 }
 
 :root {
+    color-scheme: light;
+    --page-bg: linear-gradient(180deg, #e6defa 0%, #efe9fb 30%, #f6f3fb 60%, #f7f5fa 100%);
+    --heading: oklch(0.2 0.06 280);
+    --tagline: oklch(0.3 0.08 280);
+    --glow: #f6d3e4;
+    --mountain-1: #b9abe6;
+    --mountain-2: #8f7fd0;
+    --snow: #ffffff;
     --background: oklch(0.975 0.01 290);
     --foreground: oklch(0.2 0.03 280);
     --card: oklch(1 0 0);
@@ -86,24 +94,34 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    /* Night sky: navy surfaces, cyan actions, lime prices. */
+    color-scheme: dark;
+    --page-bg: linear-gradient(180deg, oklch(0.2 0.045 255) 0%, oklch(0.16 0.035 260) 40%, oklch(0.14 0.03 262) 100%);
+    --heading: oklch(0.97 0.01 240);
+    --tagline: oklch(0.78 0.03 245);
+    --glow: oklch(0.45 0.12 220 / 35%);
+    --mountain-1: oklch(0.32 0.06 245);
+    --mountain-2: oklch(0.26 0.06 250);
+    --snow: oklch(0.85 0.03 230);
+    --background: oklch(0.15 0.03 260);
+    --foreground: oklch(0.95 0.01 240);
+    --card: oklch(0.21 0.035 256);
+    --card-foreground: oklch(0.95 0.01 240);
+    --popover: oklch(0.22 0.035 256);
+    --popover-foreground: oklch(0.95 0.01 240);
+    --primary: oklch(0.82 0.14 205);
+    --primary-foreground: oklch(0.18 0.04 255);
+    --secondary: oklch(0.28 0.045 252);
+    --secondary-foreground: oklch(0.88 0.08 205);
+    --muted: oklch(0.26 0.035 255);
+    --muted-foreground: oklch(0.72 0.03 245);
+    --accent: oklch(0.28 0.045 252);
+    --accent-foreground: oklch(0.95 0.01 240);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --border: oklch(0.85 0.05 230 / 14%);
+    --input: oklch(0.85 0.05 230 / 20%);
+    --ring: oklch(0.78 0.13 205);
+    --success: oklch(0.9 0.2 125);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -131,8 +149,12 @@
     }
 }
 @layer components {
-    /* Tall white input-like box used by the search bar pickers. */
+    /* Frosted card that holds each page section. */
+    .panel {
+        @apply rounded-2xl border border-white/70 bg-card/90 p-4 shadow-lg shadow-primary/5 backdrop-blur sm:p-5 dark:border-border dark:shadow-black/30;
+    }
+    /* Tall input-like box used by the search bar pickers. */
     .field-box {
-        @apply flex h-12 items-center gap-2.5 rounded-xl border border-input bg-white px-3.5 text-left text-[15px] outline-none transition-colors hover:border-ring/60 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30;
+        @apply flex h-12 items-center gap-2.5 rounded-xl border border-input bg-card px-3.5 text-left text-[15px] outline-none transition-colors hover:border-ring/60 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30;
     }
 }

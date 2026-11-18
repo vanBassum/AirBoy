@@ -27,7 +27,7 @@ export function SavedPlansPage({ settings: s, currentId, onOpen }: { settings: A
   }
 
   return (
-    <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-primary/5 backdrop-blur">
+    <section className="panel">
       <header className="mb-4 flex items-start gap-3">
         <Bookmark className="mt-1 size-7 text-primary" />
         <div>
@@ -42,7 +42,7 @@ export function SavedPlansPage({ settings: s, currentId, onOpen }: { settings: A
           const totals = planTotals(p, s)
           const route = p.legs.map((l, i) => (i === 0 ? `${placeName(l.from, s)} → ${placeName(l.to, s)}` : `→ ${placeName(l.to, s)}`)).join(" ")
           return (
-            <div key={p.id} className="flex flex-wrap items-center gap-4 rounded-xl border bg-white px-4 py-3">
+            <div key={p.id} className="flex flex-wrap items-center gap-4 rounded-xl border bg-card px-4 py-3">
               <div className="min-w-0 flex-1">
                 <div className="font-semibold">
                   {p.name}

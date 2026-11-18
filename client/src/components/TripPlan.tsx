@@ -149,7 +149,7 @@ export function TripPlan(p: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-primary/5 backdrop-blur">
+    <section className="panel">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 gap-3">
           <CalendarRange className="mt-1 size-7 shrink-0 text-primary" />
@@ -167,14 +167,15 @@ export function TripPlan(p: Props) {
           </div>
         </div>
         <div className="flex gap-1.5">
-          <Button size="sm" variant="outline" onClick={p.onNew}>
-            <FilePlus /> {t("plan.new")}
+          {/* Phones: icons only, like the rest of the toolbar. */}
+          <Button size="sm" variant="outline" onClick={p.onNew} title={t("plan.new")} aria-label={t("plan.new")}>
+            <FilePlus /> <span className="hidden sm:inline">{t("plan.new")}</span>
           </Button>
-          <Button size="sm" variant="outline" onClick={p.onOpen}>
-            <FolderOpen /> {t("plan.open")}
+          <Button size="sm" variant="outline" onClick={p.onOpen} title={t("plan.open")} aria-label={t("plan.open")}>
+            <FolderOpen /> <span className="hidden sm:inline">{t("plan.open")}</span>
           </Button>
-          <Button size="sm" variant={p.dirty ? "default" : "outline"} onClick={save} disabled={saving}>
-            <Save /> {t("plan.save")}
+          <Button size="sm" variant={p.dirty ? "default" : "outline"} onClick={save} disabled={saving} title={t("plan.save")} aria-label={t("plan.save")}>
+            <Save /> <span className="hidden sm:inline">{t("plan.save")}</span>
           </Button>
         </div>
       </header>
@@ -224,7 +225,7 @@ export function TripPlan(p: Props) {
       )}
       {opt.error && <p className="mt-2 text-sm text-destructive">{opt.error}</p>}
 
-      <div className="mt-5 flex items-center gap-4 rounded-xl border bg-white px-4 py-3">
+      <div className="mt-5 flex items-center gap-4 rounded-xl border bg-card px-4 py-3">
         <Coins className="size-7 text-primary" />
         <div className="flex-1">
           <div className="text-lg font-semibold">{t("plan.summary")}</div>
@@ -265,7 +266,7 @@ function LegCard({ index, leg, settings: s, isLast, targeted, editing, onEdit, o
   const c = leg.chosen
 
   return (
-    <div className={cn("rounded-xl border bg-white p-3 transition-shadow", targeted && "ring-2 ring-primary", editing && "shadow-md")}>
+    <div className={cn("rounded-xl border bg-card p-3 transition-shadow", targeted && "ring-2 ring-primary", editing && "shadow-md")}>
       <div className="flex gap-3">
         <div className="flex flex-col items-center">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full font-bold text-white" style={{ background: color(index) }}>
@@ -319,31 +320,30 @@ function LegCard({ index, leg, settings: s, isLast, targeted, editing, onEdit, o
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-1">
-          {c && (
-            <div className="text-right">
-              <div className="rounded-md bg-success/10 px-2 py-0.5 text-lg font-bold text-success tabular-nums">{fmtEuro(c.flight.price * pax(leg))}</div>
-              <div className="text-xs text-muted-foreground">{c.flight.airlines.join(", ")}</div>
-            </div>
-          )}
-          <div className="mt-auto flex">
-            <IconButton label={t("plan.findForLeg")} onClick={onFind}>
-              <Search />
-            </IconButton>
-            <IconButton label={t("plan.edit")} onClick={onEdit} active={editing}>
-              <Pencil />
-            </IconButton>
-            <IconButton label={t("plan.moveUp")} onClick={() => onMove(-1)} disabled={index === 0}>
-              <ChevronUp />
-            </IconButton>
-            <IconButton label={t("plan.moveDown")} onClick={() => onMove(1)} disabled={isLast}>
-              <ChevronDown />
-            </IconButton>
-            <IconButton label={t("plan.delete")} onClick={onDelete}>
-              <Trash2 />
-            </IconButton>
+        {c && (
+          <div className="shrink-0 text-right">
+            <div className="rounded-md bg-success/10 px-2 py-0.5 text-lg font-bold text-success tabular-nums">{fmtEuro(c.flight.price * pax(leg))}</div>
+            <div className="max-w-24 truncate text-xs text-muted-foreground">{c.flight.airlines.join(", ")}</div>
           </div>
-        </div>
+        )}
+      </div>
+
+      <div className="-mt-1 flex justify-end">
+        <IconButton label={t("plan.findForLeg")} onClick={onFind}>
+          <Search />
+        </IconButton>
+        <IconButton label={t("plan.edit")} onClick={onEdit} active={editing}>
+          <Pencil />
+        </IconButton>
+        <IconButton label={t("plan.moveUp")} onClick={() => onMove(-1)} disabled={index === 0}>
+          <ChevronUp />
+        </IconButton>
+        <IconButton label={t("plan.moveDown")} onClick={() => onMove(1)} disabled={isLast}>
+          <ChevronDown />
+        </IconButton>
+        <IconButton label={t("plan.delete")} onClick={onDelete}>
+          <Trash2 />
+        </IconButton>
       </div>
 
       {editing && (

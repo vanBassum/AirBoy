@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e6defa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111a2e" media="(prefers-color-scheme: dark)" />
     <title>AirBoy</title>
+    <script>
+      // Apply the saved theme before the first paint (see src/lib/theme.ts).
+      try {
+        const t = JSON.parse(localStorage.getItem("airboy.theme") ?? '"system"')
+        if (t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches))
+          document.documentElement.classList.add("dark")
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

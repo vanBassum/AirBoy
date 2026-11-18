@@ -1,4 +1,4 @@
-import { Settings, Trash2 } from "lucide-react"
+import { Monitor, Moon, Settings, Sun, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -6,15 +6,24 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { locale } from "@/i18n"
+import type { Theme } from "@/lib/theme"
 
 type Props = {
   compact: boolean
   onCompact: (c: boolean) => void
   fresh: boolean
   onFresh: (f: boolean) => void
+  theme: Theme
+  onTheme: (t: Theme) => void
 }
 
-export function SettingsPage({ compact, onCompact, fresh, onFresh }: Props) {
+const THEMES = [
+  { value: "system", icon: Monitor, key: "settings.themeSystem" },
+  { value: "light", icon: Sun, key: "settings.themeLight" },
+  { value: "dark", icon: Moon, key: "settings.themeDark" },
+] as const
+
+export function SettingsPage({ compact, onCompact, fresh, onFresh, theme, onTheme }: Props) {
   const { t } = useTranslation()
   const [msg, setMsg] = useState<string | null>(null)
   const [version, setVersion] = useState<{ sha: string; built: string | null } | null>(null)
@@ -35,7 +44,7 @@ export function SettingsPage({ compact, onCompact, fresh, onFresh }: Props) {
   }
 
   return (
-    <section className="max-w-2xl rounded-2xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-primary/5 backdrop-blur">
+    <section className="max-w-2xl panel">
       <header className="mb-5 flex items-start gap-3">
         <Settings className="mt-1 size-7 text-primary" />
         <div>
@@ -46,6 +55,13 @@ export function SettingsPage({ compact, onCompact, fresh, onFresh }: Props) {
 
       <div className="space-y-5">
         <Row title={t("settings.display")}>
+          <div className="flex w-fit rounded-lg border bg-card p-0.5" role="group" aria-label={t("settings.theme")}>
+            {THEMES.map(({ value, icon: Icon, key }) => (
+              <Button key={value} size="sm" variant={theme === value ? "secondary" : "ghost"} onClick={() => onTheme(value)}>
+                <Icon /> {t(key)}
+              </Button>
+            ))}
+          </div>
           <Label className="font-normal">
             <Checkbox checked={compact} onCheckedChange={(v) => onCompact(v === true)} /> {t("view.compact")}
           </Label>

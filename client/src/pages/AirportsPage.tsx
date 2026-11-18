@@ -16,7 +16,7 @@ export function AirportsPage({ settings: s, onSettings }: { settings: AppSetting
   const update = (i: number, patch: Partial<Airport>) => setAirports(s.airports.map((a, j) => (i === j ? { ...a, ...patch } : a)))
 
   return (
-    <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-primary/5 backdrop-blur">
+    <section className="panel">
       <header className="mb-4 flex items-start gap-3">
         <Car className="mt-1 size-7 text-primary" />
         <div>

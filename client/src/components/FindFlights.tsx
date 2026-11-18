@@ -52,7 +52,7 @@ export function FindFlights(p: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-primary/5 backdrop-blur">
+      <section className="panel">
         <header className="mb-4 flex items-start gap-3">
           <Search className="mt-1 size-7 text-primary" />
           <div>
@@ -107,7 +107,7 @@ export function FindFlights(p: Props) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-lg shadow-primary/5 backdrop-blur">
+      <section className="panel">
         <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="flex gap-3">
             <Plane className="mt-1 size-6 text-primary" />
