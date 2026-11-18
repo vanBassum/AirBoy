@@ -25,6 +25,10 @@ COPY --from=api-build /app/publish .
 COPY --from=ui-build /ui-dist ./wwwroot
 # Flight cache (HybridCache L2) lives in /app/data/cache; mount a volume to keep it across restarts.
 RUN mkdir -p /app/data && chown "$APP_UID" /app/data
+# Shown on the Settings page; set by CI. Declared last so they don't bust the layer cache.
+ARG GIT_SHA=dev
+ARG BUILD_TIME=
+ENV AIRBOY_SHA=$GIT_SHA AIRBOY_BUILT=$BUILD_TIME
 USER $APP_UID
 EXPOSE 8080
 VOLUME /app/data

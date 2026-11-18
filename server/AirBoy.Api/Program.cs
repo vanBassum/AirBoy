@@ -71,6 +71,13 @@ app.MapGet("/api/search", (
 });
 
 // Saved trip plans (opaque JSON owned by the client).
+// Which build is running: commit sha and build time, baked in by CI (see Dockerfile).
+app.MapGet("/api/version", () => Results.Json(new
+{
+    sha = Environment.GetEnvironmentVariable("AIRBOY_SHA") ?? "dev",
+    built = Environment.GetEnvironmentVariable("AIRBOY_BUILT") is { Length: > 0 } b ? b : null,
+}));
+
 app.MapGet("/api/plans", async (PlanStore plans, CancellationToken ct) => Results.Json(await plans.ListAsync(ct)));
 app.MapPut("/api/plans/{id}", async (string id, JsonObject plan, PlanStore plans, CancellationToken ct) =>
     Results.Json(await plans.SaveAsync(id, plan, ct)));

@@ -1,10 +1,11 @@
 import { Settings, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { locale } from "@/i18n"
 
 type Props = {
   compact: boolean
@@ -16,6 +17,15 @@ type Props = {
 export function SettingsPage({ compact, onCompact, fresh, onFresh }: Props) {
   const { t } = useTranslation()
   const [msg, setMsg] = useState<string | null>(null)
+  const [version, setVersion] = useState<{ sha: string; built: string | null } | null>(null)
+
+  useEffect(() => {
+    fetch("/api/version")
+      .then((r) => r.json())
+      .then(setVersion)
+      .catch(() => setVersion(null))
+  }, [])
+  const isSha = version && /^[0-9a-f]{7,}$/.test(version.sha)
 
   async function clearCache() {
     const r = await fetch("/api/cache", { method: "DELETE" })
@@ -50,6 +60,27 @@ export function SettingsPage({ compact, onCompact, fresh, onFresh }: Props) {
             </Button>
             {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
           </div>
+        </Row>
+        <Row title={t("settings.version")}>
+          <p className="text-sm">
+            {!version ? (
+              "…"
+            ) : isSha ? (
+              <a className="font-mono text-primary hover:underline" href={`https://github.com/vanBassum/AirBoy/commit/${version.sha}`} target="_blank" rel="noreferrer">
+                {version.sha.slice(0, 7)}
+              </a>
+            ) : (
+              <span className="font-mono">{version.sha}</span>
+            )}
+            {version?.built && (
+              <span className="text-muted-foreground">
+                {" · "}
+                {t("settings.built", {
+                  date: new Date(version.built).toLocaleString(locale.intl, { dateStyle: "medium", timeStyle: "short" }),
+                })}
+              </span>
+            )}
+          </p>
         </Row>
       </div>
     </section>
