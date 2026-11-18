@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.ServerSentEvents;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using AirBoy.Api.Caching;
 using AirBoy.Api.Flights;
+using AirBoy.Api.Plans;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Hybrid;
 
@@ -16,6 +18,7 @@ builder.Services.AddHybridCache(o => o.MaximumPayloadBytes = 4 * 1024 * 1024);
 
 builder.Services.Configure<ScanOptions>(builder.Configuration.GetSection("Scan"));
 builder.Services.AddScoped<SearchService>();
+builder.Services.AddSingleton(new PlanStore(Path.Combine(builder.Environment.ContentRootPath, "data", "plans.json")));
 builder.Services
     .AddHttpClient<GoogleFlightsClient>(c =>
     {
@@ -40,27 +43,25 @@ app.UseStaticFiles();
 
 var iata = new Regex("^[A-Z]{3}$");
 
-// Streams one SSE "leg" event per route/day; the client combines legs into trips.
+// Streams one SSE "leg" event per route/day: every route (e.g. "EIN-TIA") for every day in [start, end].
 app.MapGet("/api/search", (
-    string origins, string dest,
-    DateOnly outFrom, DateOnly outTo, DateOnly retFrom, DateOnly retTo,
+    string routes, DateOnly start, DateOnly end,
     int? maxStops, int? adults, bool? fresh,
     SearchService search, HttpContext http, CancellationToken ct) =>
 {
-    var homes = origins.ToUpperInvariant().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToArray();
-    dest = dest.Trim().ToUpperInvariant();
-    if (homes.Length == 0 || !homes.All(iata.IsMatch) || !iata.IsMatch(dest))
-        return Results.BadRequest("Use 3-letter IATA codes.");
-    if (outTo < outFrom || retTo < retFrom)
+    var pairs = routes.ToUpperInvariant()
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Distinct()
+        .Select(r => r.Split('-'))
+        .ToList();
+    if (pairs.Count == 0 || pairs.Any(p => p.Length != 2 || !iata.IsMatch(p[0]) || !iata.IsMatch(p[1]) || p[0] == p[1]))
+        return Results.BadRequest("Routes must look like EIN-TIA (3-letter IATA codes).");
+    if (end < start)
         return Results.BadRequest("Invalid period.");
 
     var stops = Math.Clamp(maxStops ?? 0, 0, 2);
     var pax = Math.Clamp(adults ?? 1, 1, 9);
-    var legs = (
-        from h in homes from d in Days(outFrom, outTo) select new LegQuery(h, dest, d, stops, pax)
-    ).Concat(
-        from h in homes from d in Days(retFrom, retTo) select new LegQuery(dest, h, d, stops, pax)
-    ).ToList();
+    var legs = (from p in pairs from d in Days(start, end) select new LegQuery(p[0], p[1], d, stops, pax)).ToList();
     if (legs.Count > 600)
         return Results.BadRequest($"Too many searches ({legs.Count}); shorten the period.");
 
@@ -68,6 +69,13 @@ app.MapGet("/api/search", (
     http.Response.Headers["X-Accel-Buffering"] = "no";
     return TypedResults.ServerSentEvents(Stream(legs, fresh ?? false, search, ct));
 });
+
+// Saved trip plans (opaque JSON owned by the client).
+app.MapGet("/api/plans", async (PlanStore plans, CancellationToken ct) => Results.Json(await plans.ListAsync(ct)));
+app.MapPut("/api/plans/{id}", async (string id, JsonObject plan, PlanStore plans, CancellationToken ct) =>
+    Results.Json(await plans.SaveAsync(id, plan, ct)));
+app.MapDelete("/api/plans/{id}", async (string id, PlanStore plans, CancellationToken ct) =>
+    await plans.DeleteAsync(id, ct) ? Results.NoContent() : Results.NotFound());
 
 app.MapDelete("/api/cache", async (HybridCache cache, FileDistributedCache files) =>
 {

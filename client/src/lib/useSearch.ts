@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 
-import i18n from "@/i18n"
-
+import { streamLegs } from "./stream"
 import type { LegResult } from "./types"
 
 export type SearchState = {
@@ -19,44 +18,32 @@ const idle: SearchState = { running: false, total: 0, done: 0, cached: 0, failed
 /** Streams leg results from the backend over Server-Sent Events. */
 export function useSearch() {
   const [state, setState] = useState<SearchState>(idle)
-  const source = useRef<EventSource | null>(null)
+  const current = useRef<ReturnType<typeof streamLegs> | null>(null)
 
   const stop = useCallback(() => {
-    source.current?.close()
-    source.current = null
+    current.current?.cancel()
+    current.current = null
     setState((s) => ({ ...s, running: false }))
   }, [])
 
   const start = useCallback((url: string) => {
-    source.current?.close()
+    current.current?.cancel()
     setState({ ...idle, running: true })
-
-    const es = new EventSource(url)
-    source.current = es
-    es.addEventListener("start", (e) => {
-      const { total } = JSON.parse((e as MessageEvent).data)
-      setState((s) => ({ ...s, total }))
+    const run = streamLegs(url, {
+      onStart: (total) => setState((s) => ({ ...s, total })),
+      onLeg: (leg) =>
+        setState((s) => ({
+          ...s,
+          done: s.done + 1,
+          cached: s.cached + (leg.cached ? 1 : 0),
+          failed: s.failed + (leg.error ? 1 : 0),
+          legs: [...s.legs, leg],
+        })),
     })
-    es.addEventListener("leg", (e) => {
-      const leg: LegResult = JSON.parse((e as MessageEvent).data)
-      setState((s) => ({
-        ...s,
-        done: s.done + 1,
-        cached: s.cached + (leg.cached ? 1 : 0),
-        failed: s.failed + (leg.error ? 1 : 0),
-        legs: [...s.legs, leg],
-      }))
-    })
-    es.addEventListener("done", () => {
-      es.close()
-      source.current = null
-      setState((s) => ({ ...s, running: false }))
-    })
-    es.onerror = () => {
-      es.close()
-      source.current = null
-      setState((s) => ({ ...s, running: false, error: s.done < s.total || s.total === 0 ? i18n.t("search.disconnected") : s.error }))
-    }
+    current.current = run
+    run.done
+      .then(() => setState((s) => ({ ...s, running: false })))
+      .catch((e: Error) => setState((s) => ({ ...s, running: false, error: e.message })))
   }, [])
 
   return { state, start, stop }

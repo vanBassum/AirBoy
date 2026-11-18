@@ -10,6 +10,7 @@ export type FlightOption = {
   durationMinutes: number
 }
 
+/** All options for one route on one day, as streamed by the server. */
 export type LegResult = {
   from: string
   to: string
@@ -23,51 +24,73 @@ export type LegResult = {
 export type Airport = {
   code: string
   name: string
-  enabled: boolean
+  /** Part of the home group: the airports you can drive to. */
+  home: boolean
   /** Euro per started day parked. */
   parkingPerDay: number
-  /** Fixed extra cost (fuel/toll/train), round trip. */
+  /** Fixed extra cost (fuel/toll/train) per parked trip. */
   travelCost: number
 }
 
-/** Client-side filters; changing them never triggers a new scan. */
+/** Client-side filters; changing them never triggers a new search. */
 export type Filters = {
   excludedAirlines: string[]
-  /** Home airports hidden from the results (the search itself still includes them). */
+  /** Airports hidden from the results (the search itself still includes them). */
   excludedAirports: string[]
   /** Departure hour window [depFrom, depTo], 0–24. */
   depFrom: number
   depTo: number
-  /** Max price per one-way flight; null = no limit. */
+  /** Max price per person per flight; null = no limit. */
   maxPrice: number | null
   directOnly: boolean
-  minNights: number
-  maxNights: number
 }
 
-export type SearchSettings = {
-  dest: string
-  outFrom: string
-  outTo: string
-  retFrom: string
-  retTo: string
-  adults: number
+export type AppSettings = {
   airports: Airport[]
+  /** Display name of the home group, e.g. "Home" or "Netherlands". */
+  homeName: string
   filters: Filters
 }
 
-export type Direction = "out" | "ret"
+/** "HOME" = every home airport; otherwise a 3-letter IATA code. */
+export type Place = string
 
-export type LegFlight = { leg: LegResult; flight: FlightOption; airport: string }
+export type SearchQuery = {
+  from: Place
+  to: Place
+  dateFrom: string
+  dateTo: string
+}
 
-export type Trip = {
-  airport: Airport
-  out: FlightOption
-  outLeg: LegResult
-  ret: FlightOption
-  retLeg: LegResult
-  nights: number
-  flightPrice: number
-  extraCost: number
-  total: number
+export type LegFlight = { leg: LegResult; flight: FlightOption }
+
+export type Traveler = { id: string; name: string }
+
+export type ChosenFlight = {
+  from: string
+  to: string
+  url: string
+  flight: FlightOption
+  /** Picked by hand: the optimizer keeps it. Otherwise the optimizer may replace it. */
+  pinned: boolean
+}
+
+export type PlanLeg = {
+  id: string
+  from: Place
+  to: Place
+  dateFrom: string
+  dateTo: string
+  travelers: string[]
+  chosen: ChosenFlight | null
+}
+
+export type Plan = {
+  id: string
+  name: string
+  travelers: Traveler[]
+  legs: PlanLeg[]
+  /** All flights touching the home group use the same airport (the car stays there). */
+  sameHomeAirport: boolean
+  updatedAt?: string
 }
