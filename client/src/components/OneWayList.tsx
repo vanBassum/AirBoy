@@ -1,5 +1,6 @@
 import { ArrowRight, Plane, PlaneLanding } from "lucide-react"
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Airline, AirlineBadge } from "@/components/AirlineBadge"
 import { AirportTag, airportColor } from "@/components/AirportTag"
@@ -21,7 +22,6 @@ import {
 import type { Airport, Direction, FlightOption, LegResult, SearchSettings } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-const sorts: Record<OneWaySort, string> = { price: "Prijs (laag → hoog)", time: "Vertrektijd", duration: "Reisduur" }
 const LIMIT = 200
 
 type Props = {
@@ -33,7 +33,9 @@ type Props = {
 }
 
 export function OneWayList({ legs, settings: s, direction, compact, onCompact }: Props) {
+  const { t } = useTranslation()
   const [sort, setSort] = useState<OneWaySort>("price")
+  const sorts: Record<OneWaySort, string> = { price: t("sort.price"), time: t("sort.time"), duration: t("sort.duration") }
   const list = useMemo(() => sortOneWay(oneWayFlights(legs, s, direction), sort), [legs, s, direction, sort])
 
   const homes = visibleAirports(s).map((a) => a.name || a.code).join("/") || "–"
@@ -50,11 +52,11 @@ export function OneWayList({ legs, settings: s, direction, compact, onCompact }:
           {direction === "out" ? <Plane className="mt-1 size-6 text-primary" /> : <PlaneLanding className="mt-1 size-6 text-primary" />}
           <div>
             <h2 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
-              {direction === "out" ? "Heenvluchten" : "Terugvluchten"}: {from} <ArrowRight className="size-5" /> {to}
+              {direction === "out" ? t("oneWay.titleOut") : t("oneWay.titleRet")}: {from} <ArrowRight className="size-5" /> {to}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {fmtDateLong(d1)} – {fmtDateLong(d2)} · {list.length} vluchten gevonden
-              {failed > 0 && <span className="text-destructive"> · {failed} dagen mislukt</span>}
+              {fmtDateLong(d1)} – {fmtDateLong(d2)} · {t("oneWay.found", { count: list.length })}
+              {failed > 0 && <span className="text-destructive"> · {t("oneWay.failedDays", { count: failed })}</span>}
             </p>
           </div>
         </div>
@@ -65,15 +67,15 @@ export function OneWayList({ legs, settings: s, direction, compact, onCompact }:
       </header>
 
       {scanned.length === 0 ? (
-        <Empty>Klik op “Zoek vluchten” om te beginnen.</Empty>
+        <Empty>{t("list.start")}</Empty>
       ) : list.length === 0 ? (
-        <Empty>Geen vluchten binnen de filters.</Empty>
+        <Empty>{t("oneWay.empty")}</Empty>
       ) : (
         <div className={compact ? "space-y-1" : "space-y-2"}>
           {list.slice(0, LIMIT).map(({ leg, flight, airport }, i) => (
             <Row key={i} leg={leg} f={flight} airport={airport} airports={s.airports} direction={direction} />
           ))}
-          {list.length > LIMIT && <p className="pt-2 text-center text-sm text-muted-foreground">+{list.length - LIMIT} meer; verfijn de filters.</p>}
+          {list.length > LIMIT && <p className="pt-2 text-center text-sm text-muted-foreground">{t("list.more", { count: list.length - LIMIT })}</p>}
         </div>
       )}
     </section>
@@ -97,6 +99,7 @@ function Route({ leg, airport, airports, direction, size }: Omit<RowProps, "f"> 
 const plusDay = (f: FlightOption) => f.arrivalDate !== f.departureDate && <sup className="ml-0.5 text-[10px] text-muted-foreground">+1</sup>
 
 function RoomyRow({ leg, f, airport, airports, direction }: RowProps) {
+  const { t } = useTranslation()
   return (
     <div
       className="grid grid-cols-2 items-center gap-x-4 gap-y-1 rounded-xl border border-l-4 bg-white px-4 py-3 transition-shadow hover:shadow-md md:grid-cols-[minmax(9rem,1.3fr)_1fr_7rem_8.5rem_5rem_minmax(5rem,1fr)_5rem_auto]"
@@ -113,19 +116,20 @@ function RoomyRow({ leg, f, airport, airports, direction }: RowProps) {
       <span className="truncate text-sm text-muted-foreground">{fmtStops(f)}</span>
       <span className="text-right text-xl font-bold text-success tabular-nums">{fmtEuro(f.price)}</span>
       <a href={leg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm", className: "px-5" })}>
-        Bekijk
+        {t("oneWay.view")}
       </a>
     </div>
   )
 }
 
 function CompactRow({ leg, f, airport, airports, direction }: RowProps) {
+  const { t } = useTranslation()
   return (
     <a
       href={leg.url}
       target="_blank"
       rel="noreferrer"
-      title="Open in Google Flights"
+      title={t("oneWay.openGoogle")}
       className={cn(
         "grid items-center gap-x-3 rounded-md border-l-4 bg-white px-3 py-1 text-sm transition-colors hover:bg-accent",
         "grid-cols-[10rem_6.5rem_6.5rem_6.5rem_3.5rem_minmax(4rem,1fr)_3.5rem]",

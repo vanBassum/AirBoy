@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function SortSelect<T extends string>({
@@ -9,9 +11,10 @@ export function SortSelect<T extends string>({
   onChange: (v: T) => void
   options: Record<T, string>
 }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center gap-3 text-sm">
-      <span className="hidden sm:inline">Sorteer op</span>
+      <span className="hidden sm:inline">{t("sort.label")}</span>
       <Select items={options} value={value} onValueChange={(v) => v && onChange(v as T)}>
         <SelectTrigger className="h-10 min-w-44 bg-white">
           <SelectValue />

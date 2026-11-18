@@ -1,6 +1,7 @@
 import { addDays, parseISO } from "date-fns"
 import { ArrowLeftRight, CalendarDays, List } from "lucide-react"
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Airline, AirlineBadge } from "@/components/AirlineBadge"
 import { AirportDot, AirportTag, airportColor } from "@/components/AirportTag"
@@ -12,7 +13,6 @@ import { buildTrips, fmtDate, fmtEuro, heat, iso, visibleAirports } from "@/lib/
 import type { Airport, FlightOption, LegResult, SearchSettings, Trip } from "@/lib/types"
 
 type Sort = "total" | "date" | "flights"
-const sorts: Record<Sort, string> = { total: "Totaalprijs", flights: "Alleen vluchtprijs", date: "Vertrekdatum" }
 const LIMIT = 150
 
 type Props = {
@@ -23,7 +23,9 @@ type Props = {
 }
 
 export function ReturnList({ legs, settings: s, compact, onCompact }: Props) {
+  const { t } = useTranslation()
   const [sort, setSort] = useState<Sort>("total")
+  const sorts: Record<Sort, string> = { total: t("sort.total"), flights: t("sort.flights"), date: t("sort.date") }
   const [view, setView] = useState<"list" | "calendar">("list")
   const trips = useMemo(() => buildTrips(legs, s), [legs, s])
   const sorted = useMemo(
@@ -45,21 +47,21 @@ export function ReturnList({ legs, settings: s, compact, onCompact }: Props) {
           <ArrowLeftRight className="mt-1 size-6 text-primary" />
           <div>
             <h2 className="text-xl font-semibold">
-              Retourcombinaties: {homes} ⇄ {s.dest}
+              {t("return.title")}: {homes} ⇄ {s.dest}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {s.filters.minNights}–{s.filters.maxNights} nachten · terug naar dezelfde luchthaven · {trips.length} combinaties
-              {trips[0] && <> · beste {fmtEuro(trips[0].total)}</>}
+              {t("return.summary", { min: s.filters.minNights, max: s.filters.maxNights, count: trips.length })}
+              {trips[0] && <> · {t("return.best", { price: fmtEuro(trips[0].total) })}</>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex rounded-lg border bg-white p-0.5">
             <Button size="sm" variant={view === "list" ? "secondary" : "ghost"} onClick={() => setView("list")}>
-              <List /> Lijst
+              <List /> {t("return.list")}
             </Button>
             <Button size="sm" variant={view === "calendar" ? "secondary" : "ghost"} onClick={() => setView("calendar")}>
-              <CalendarDays /> Kalender
+              <CalendarDays /> {t("return.calendar")}
             </Button>
           </div>
           {view === "list" && <DensityToggle compact={compact} onChange={onCompact} />}
@@ -68,74 +70,77 @@ export function ReturnList({ legs, settings: s, compact, onCompact }: Props) {
       </header>
 
       {legs.length === 0 ? (
-        <Empty>Klik op “Zoek vluchten” om te beginnen.</Empty>
+        <Empty>{t("list.start")}</Empty>
       ) : trips.length === 0 ? (
-        <Empty>Geen combinaties binnen de nachten en filters.</Empty>
+        <Empty>{t("return.empty")}</Empty>
       ) : view === "calendar" ? (
         <CalendarMatrix trips={trips} settings={s} />
       ) : (
         <div className={compact ? "space-y-1" : "space-y-2"}>
-          {sorted.slice(0, LIMIT).map((t, i) => (
-            <Row key={i} t={t} airports={s.airports} />
+          {sorted.slice(0, LIMIT).map((trip, i) => (
+            <Row key={i} trip={trip} airports={s.airports} />
           ))}
-          {sorted.length > LIMIT && <p className="pt-2 text-center text-sm text-muted-foreground">+{sorted.length - LIMIT} meer; verfijn de filters.</p>}
+          {sorted.length > LIMIT && <p className="pt-2 text-center text-sm text-muted-foreground">{t("list.more", { count: sorted.length - LIMIT })}</p>}
         </div>
       )}
     </section>
   )
 }
 
-type RowProps = { t: Trip; airports: Airport[] }
+type RowProps = { trip: Trip; airports: Airport[] }
 
-function TripRow({ t, airports }: RowProps) {
+function TripRow({ trip, airports }: RowProps) {
+  const { t } = useTranslation()
   return (
     <div
       className="grid items-center gap-x-5 gap-y-2 rounded-xl border border-l-4 bg-white px-4 py-3 transition-shadow hover:shadow-md lg:grid-cols-[4rem_1fr_1fr_5rem_8rem_auto]"
-      style={{ borderLeftColor: airportColor(t.airport.code, airports) }}
+      style={{ borderLeftColor: airportColor(trip.airport.code, airports) }}
     >
-      <AirportTag code={t.airport.code} airports={airports} size="lg" />
-      <LegBrief label="Heen" f={t.out} />
-      <LegBrief label="Terug" f={t.ret} />
-      <span className="text-sm text-muted-foreground">{t.nights} nachten</span>
+      <AirportTag code={trip.airport.code} airports={airports} size="lg" />
+      <LegBrief label={t("return.out")} f={trip.out} />
+      <LegBrief label={t("return.back")} f={trip.ret} />
+      <span className="text-sm text-muted-foreground">{t("return.nights", { count: trip.nights })}</span>
       <div className="text-right">
-        <div className="text-xl font-bold text-success tabular-nums">{fmtEuro(t.total)}</div>
+        <div className="text-xl font-bold text-success tabular-nums">{fmtEuro(trip.total)}</div>
         <div className="text-xs text-muted-foreground">
-          {fmtEuro(t.flightPrice)} vlucht{t.extraCost > 0 && ` + ${fmtEuro(t.extraCost)} parkeren/reis`}
+          {t("return.flights", { price: fmtEuro(trip.flightPrice) })}
+          {trip.extraCost > 0 && ` ${t("return.extra", { price: fmtEuro(trip.extraCost) })}`}
         </div>
       </div>
       <div className="flex gap-1.5">
-        <a href={t.outLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm" })}>
-          Heen
+        <a href={trip.outLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm" })}>
+          {t("return.out")}
         </a>
-        <a href={t.retLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm" })}>
-          Terug
+        <a href={trip.retLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm" })}>
+          {t("return.back")}
         </a>
       </div>
     </div>
   )
 }
 
-function CompactTripRow({ t, airports }: RowProps) {
+function CompactTripRow({ trip, airports }: RowProps) {
+  const { t } = useTranslation()
   return (
     <div
       className="grid grid-cols-[3.25rem_1fr_1fr_4.5rem_4rem_6rem_auto] items-center gap-x-3 rounded-md border-l-4 bg-white px-3 py-1 text-sm transition-colors hover:bg-accent"
-      style={{ borderLeftColor: airportColor(t.airport.code, airports) }}
+      style={{ borderLeftColor: airportColor(trip.airport.code, airports) }}
     >
-      <AirportTag code={t.airport.code} airports={airports} size="sm" className="justify-self-start" />
-      <LegInline f={t.out} />
-      <LegInline f={t.ret} />
-      <span className="text-xs text-muted-foreground">{t.nights} n</span>
-      <span className="text-right font-bold text-success tabular-nums">{fmtEuro(t.total)}</span>
+      <AirportTag code={trip.airport.code} airports={airports} size="sm" className="justify-self-start" />
+      <LegInline f={trip.out} />
+      <LegInline f={trip.ret} />
+      <span className="text-xs text-muted-foreground">{t("return.nightsShort", { count: trip.nights })}</span>
+      <span className="text-right font-bold text-success tabular-nums">{fmtEuro(trip.total)}</span>
       <span className="truncate text-right text-xs text-muted-foreground tabular-nums">
-        {fmtEuro(t.flightPrice)}
-        {t.extraCost > 0 && ` + ${fmtEuro(t.extraCost)}`}
+        {fmtEuro(trip.flightPrice)}
+        {trip.extraCost > 0 && ` + ${fmtEuro(trip.extraCost)}`}
       </span>
       <span className="flex gap-1">
-        <a href={t.outLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "xs", variant: "secondary" })}>
-          Heen
+        <a href={trip.outLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "xs", variant: "secondary" })}>
+          {t("return.out")}
         </a>
-        <a href={t.retLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "xs", variant: "secondary" })}>
-          Terug
+        <a href={trip.retLeg.url} target="_blank" rel="noreferrer" className={buttonVariants({ size: "xs", variant: "secondary" })}>
+          {t("return.back")}
         </a>
       </span>
     </div>
@@ -181,6 +186,7 @@ function dateRange(from: string, to: string) {
 
 /** Outbound date × nights → cheapest total (optionally for one airport). */
 function CalendarMatrix({ trips, settings: s }: { trips: Trip[]; settings: SearchSettings }) {
+  const { t } = useTranslation()
   const [pick, setPick] = useState<string | null>(null)
   const visible = visibleAirports(s)
   const only = visible.some((a) => a.code === pick) ? pick : null
@@ -201,7 +207,7 @@ function CalendarMatrix({ trips, settings: s }: { trips: Trip[]; settings: Searc
     <div className="space-y-3">
       <div className="flex flex-wrap gap-1">
         <Button size="sm" variant={only === null ? "default" : "outline"} onClick={() => setPick(null)}>
-          Alle luchthavens
+          {t("calendar.allAirports")}
         </Button>
         {visible.map((a) => (
           <Button key={a.code} size="sm" variant={only === a.code ? "default" : "outline"} onClick={() => setPick(a.code)}>
@@ -213,7 +219,7 @@ function CalendarMatrix({ trips, settings: s }: { trips: Trip[]; settings: Searc
         <table className="w-full border-separate border-spacing-1 text-sm">
           <thead>
             <tr>
-              <th className="text-left font-medium text-muted-foreground">Heen \ nachten</th>
+              <th className="text-left font-medium text-muted-foreground">{t("calendar.corner")}</th>
               {nights.map((n) => (
                 <th key={n} className="font-medium text-muted-foreground">
                   {n}
@@ -226,24 +232,31 @@ function CalendarMatrix({ trips, settings: s }: { trips: Trip[]; settings: Searc
               <tr key={d}>
                 <td className="pr-2 font-medium whitespace-nowrap">{fmtDate(d)}</td>
                 {nights.map((n) => {
-                  const t = cells.get(`${d}|${n}`)
+                  const cell = cells.get(`${d}|${n}`)
                   return (
                     <td
                       key={n}
                       className="h-12 min-w-16 rounded-lg text-center"
-                      style={t ? { background: heat(t.total, min, max) } : undefined}
+                      style={cell ? { background: heat(cell.total, min, max) } : undefined}
                       title={
-                        t
-                          ? `${t.airport.code}: heen ${t.out.departureTime} ${t.out.airlines.join(", ")}, terug ${fmtDate(t.ret.departureDate)} ${t.ret.departureTime} ${t.ret.airlines.join(", ")}`
+                        cell
+                          ? t("calendar.cellTitle", {
+                              airport: cell.airport.code,
+                              outTime: cell.out.departureTime,
+                              outAirline: cell.out.airlines.join(", "),
+                              retDate: fmtDate(cell.ret.departureDate),
+                              retTime: cell.ret.departureTime,
+                              retAirline: cell.ret.airlines.join(", "),
+                            })
                           : undefined
                       }
                     >
-                      {t ? (
+                      {cell ? (
                         <div className="leading-tight">
-                          <div className="font-semibold">{fmtEuro(t.total)}</div>
+                          <div className="font-semibold">{fmtEuro(cell.total)}</div>
                           {!only && (
-                            <div className="text-[10px] font-bold" style={{ color: airportColor(t.airport.code, s.airports) }}>
-                              {t.airport.code}
+                            <div className="text-[10px] font-bold" style={{ color: airportColor(cell.airport.code, s.airports) }}>
+                              {cell.airport.code}
                             </div>
                           )}
                         </div>

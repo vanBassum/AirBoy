@@ -1,4 +1,5 @@
 import { AirlineBadge } from "@/components/AirlineBadge"
+import { useTranslation } from "react-i18next"
 import { AirportTag } from "@/components/AirportTag"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -21,6 +22,7 @@ type Props = {
 const arr = (v: number | readonly number[]) => (Array.isArray(v) ? v : [v]) as number[]
 
 export function FiltersPanel({ filters: f, onChange, airports, airlines, priceCeiling, showNights }: Props) {
+  const { t } = useTranslation()
   const set = (patch: Partial<Filters>) => onChange({ ...f, ...patch })
   const ceiling = Math.max(priceCeiling, 50)
   const price = f.maxPrice === null ? ceiling : Math.min(f.maxPrice, ceiling)
@@ -28,13 +30,13 @@ export function FiltersPanel({ filters: f, onChange, airports, airlines, priceCe
   return (
     <aside className="h-fit rounded-2xl border border-white/70 bg-white/90 p-6 shadow-lg shadow-primary/5 backdrop-blur">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Filters</h2>
+        <h2 className="text-xl font-semibold">{t("filters.title")}</h2>
         <button className="text-sm text-primary hover:underline" onClick={() => onChange({ ...defaultFilters, minNights: f.minNights, maxNights: f.maxNights })}>
-          Alles wissen
+          {t("filters.clear")}
         </button>
       </div>
 
-      <Section title="Vliegvelden">
+      <Section title={t("filters.airports")}>
         <div className="space-y-2.5">
           {airports
             .filter((a) => a.enabled)
@@ -53,8 +55,8 @@ export function FiltersPanel({ filters: f, onChange, airports, airlines, priceCe
         </div>
       </Section>
 
-      <Section title="Maatschappijen">
-        {airlines.length === 0 && <p className="text-sm text-muted-foreground">Nog geen resultaten.</p>}
+      <Section title={t("filters.airlines")}>
+        {airlines.length === 0 && <p className="text-sm text-muted-foreground">{t("filters.noResults")}</p>}
         <div className="-mr-2 max-h-44 space-y-3 overflow-y-auto pr-2">
           {airlines.map((a) => (
             <Label key={a} className="font-normal">
@@ -71,11 +73,11 @@ export function FiltersPanel({ filters: f, onChange, airports, airlines, priceCe
         </div>
       </Section>
 
-      <Section title="Vertrektijd" value={`${fmtHour(f.depFrom)} – ${fmtHour(f.depTo)}`}>
+      <Section title={t("filters.departureTime")} value={`${fmtHour(f.depFrom)} – ${fmtHour(f.depTo)}`}>
         <Slider min={0} max={24} step={1} value={[f.depFrom, f.depTo]} onValueChange={(v) => { const [a, b] = arr(v); set({ depFrom: a, depTo: b }) }} />
       </Section>
 
-      <Section title="Max prijs per vlucht" value={f.maxPrice === null ? "Geen limiet" : fmtEuro(price)}>
+      <Section title={t("filters.maxPrice")} value={f.maxPrice === null ? t("filters.noLimit") : fmtEuro(price)}>
         <Slider
           min={10}
           max={ceiling}
@@ -89,18 +91,18 @@ export function FiltersPanel({ filters: f, onChange, airports, airlines, priceCe
       </Section>
 
       {showNights && (
-        <Section title="Verblijf" value={`${f.minNights} – ${f.maxNights} nachten`}>
+        <Section title={t("filters.stay")} value={t("filters.stayRange", { min: f.minNights, max: f.maxNights })}>
           <Slider min={1} max={21} step={1} value={[f.minNights, f.maxNights]} onValueChange={(v) => { const [a, b] = arr(v); set({ minNights: a, maxNights: b }) }} />
         </Section>
       )}
 
-      <Section title="Overstappen">
+      <Section title={t("filters.stops")}>
         <RadioGroup value={f.directOnly ? "direct" : "all"} onValueChange={(v) => set({ directOnly: v === "direct" })}>
           <Label className="font-normal">
-            <RadioGroupItem value="direct" /> Alleen directe vluchten
+            <RadioGroupItem value="direct" /> {t("filters.directOnly")}
           </Label>
           <Label className="font-normal">
-            <RadioGroupItem value="all" /> Ook met 1 overstap
+            <RadioGroupItem value="all" /> {t("filters.oneStop")}
           </Label>
         </RadioGroup>
       </Section>

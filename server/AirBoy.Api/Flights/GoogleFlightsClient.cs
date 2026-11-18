@@ -13,7 +13,7 @@ public sealed partial class GoogleFlightsClient(HttpClient http)
 {
     public const string BaseUrl = "https://www.google.com/travel/flights";
 
-    public static string SearchUrl(LegQuery q, string lang = "nl") =>
+    public static string SearchUrl(LegQuery q, string lang = "en") =>
         $"{BaseUrl}/search?tfs={Uri.EscapeDataString(Tfs(q))}&hl={lang}&curr=EUR";
 
     private static string Tfs(LegQuery q) => TfsEncoder.OneWay(q.From, q.To, q.Date, q.MaxStops, q.Adults);
@@ -23,7 +23,7 @@ public sealed partial class GoogleFlightsClient(HttpClient http)
         var url = $"{BaseUrl}?tfs={Uri.EscapeDataString(Tfs(q))}&hl=en&curr=EUR";
         using var res = await http.GetAsync(url, ct);
         if ((int)res.StatusCode == 429)
-            throw new GoogleBlockedException("Google geeft 429 (te veel verzoeken)");
+            throw new GoogleBlockedException("Google returned 429 (too many requests)");
         res.EnsureSuccessStatusCode();
         var html = await res.Content.ReadAsStringAsync(ct);
         return Parse(html);
@@ -33,18 +33,18 @@ public sealed partial class GoogleFlightsClient(HttpClient http)
     {
         var m = Ds1Script().Match(html);
         if (!m.Success)
-            throw new GoogleBlockedException("Geen vluchtdata in pagina (consent/captcha?)");
+            throw new GoogleBlockedException("No flight data in page (consent/captcha?)");
 
         var js = m.Groups[1].Value;
         var start = js.IndexOf("data:", StringComparison.Ordinal);
         var end = js.LastIndexOf(',');
         if (start < 0 || end <= start)
-            throw new FormatException("Onverwacht scriptformaat");
+            throw new FormatException("Unexpected script format");
         var data = js[(start + 5)..end];
         if (data.TrimEnd().EndsWith("errorHasStatus: true"))
             return [];
 
-        var payload = JsonNode.Parse(data) as JsonArray ?? throw new FormatException("Geen JSON-array");
+        var payload = JsonNode.Parse(data) as JsonArray ?? throw new FormatException("Not a JSON array");
         var results = new List<FlightOption>();
 
         // payload[3][0] = "other flights" list, payload[2][0] = "best flights" list (may be null)

@@ -1,4 +1,5 @@
 import { ChevronDown, MapPin, Plus, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { AirportDot } from "@/components/AirportTag"
 import { Button } from "@/components/ui/button"
@@ -14,8 +15,9 @@ type Props = {
 
 /** Multi-select of home airports, with parking and travel cost per airport. */
 export function AirportPicker({ airports, onChange }: Props) {
+  const { t } = useTranslation()
   const enabled = airports.filter((a) => a.enabled)
-  const label = enabled.length ? enabled.map((a) => (a.name ? `${a.name} (${a.code})` : a.code)).join(", ") : "Kies luchthavens"
+  const label = enabled.length ? enabled.map((a) => (a.name ? `${a.name} (${a.code})` : a.code)).join(", ") : t("airports.choose")
   const update = (i: number, patch: Partial<Airport>) => onChange(airports.map((a, j) => (i === j ? { ...a, ...patch } : a)))
   const num = (v: string) => (v === "" || !Number.isFinite(Number(v)) ? 0 : Number(v))
 
@@ -29,10 +31,10 @@ export function AirportPicker({ airports, onChange }: Props) {
       <PopoverContent className="w-[34rem] max-w-[calc(100vw-2rem)] p-4" align="start">
         <div className="grid grid-cols-[auto_4.5rem_1fr_5.5rem_5.5rem_auto] items-center gap-x-2 gap-y-2 text-sm">
           <span />
-          <span className="text-xs text-muted-foreground">Code</span>
-          <span className="text-xs text-muted-foreground">Naam</span>
-          <span className="text-xs text-muted-foreground">Parkeren/dag</span>
-          <span className="text-xs text-muted-foreground">Reis retour</span>
+          <span className="text-xs text-muted-foreground">{t("airports.code")}</span>
+          <span className="text-xs text-muted-foreground">{t("airports.name")}</span>
+          <span className="text-xs text-muted-foreground">{t("airports.parking")}</span>
+          <span className="text-xs text-muted-foreground">{t("airports.travel")}</span>
           <span />
           {airports.map((a, i) => (
             <div key={i} className="contents">
@@ -44,7 +46,7 @@ export function AirportPicker({ airports, onChange }: Props) {
               <Input value={a.name} onChange={(e) => update(i, { name: e.target.value })} />
               <Input type="number" min={0} value={a.parkingPerDay} onChange={(e) => update(i, { parkingPerDay: num(e.target.value) })} />
               <Input type="number" min={0} value={a.travelCost} onChange={(e) => update(i, { travelCost: num(e.target.value) })} />
-              <Button size="icon-sm" variant="ghost" aria-label="Verwijder" onClick={() => onChange(airports.filter((_, j) => j !== i))}>
+              <Button size="icon-sm" variant="ghost" aria-label={t("airports.remove")} onClick={() => onChange(airports.filter((_, j) => j !== i))}>
                 <X />
               </Button>
             </div>
@@ -56,9 +58,9 @@ export function AirportPicker({ airports, onChange }: Props) {
             variant="outline"
             onClick={() => onChange([...airports, { code: "", name: "", enabled: true, parkingPerDay: 0, travelCost: 0 }])}
           >
-            <Plus /> Luchthaven
+            <Plus /> {t("airports.add")}
           </Button>
-          <span className="text-xs text-muted-foreground">Kosten in €, tellen mee bij retourcombinaties.</span>
+          <span className="text-xs text-muted-foreground">{t("airports.costsHint")}</span>
         </div>
       </PopoverContent>
     </Popover>

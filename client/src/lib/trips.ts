@@ -1,16 +1,18 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns"
-import { nl } from "date-fns/locale"
+
+import i18n, { locale } from "@/i18n"
 
 import type { Direction, Filters, FlightOption, LegFlight, LegResult, SearchSettings, Trip } from "./types"
 
 export const iso = (d: Date) => format(d, "yyyy-MM-dd")
-export const fmtDate = (d: string) => format(parseISO(d), "EEE d MMM", { locale: nl })
-export const fmtDateLong = (d: string) => format(parseISO(d), "d MMM yyyy", { locale: nl })
+export const fmtDate = (d: string) => format(parseISO(d), "EEE d MMM", { locale: locale.dateFns })
+export const fmtDateLong = (d: string) => format(parseISO(d), "d MMM yyyy", { locale: locale.dateFns })
 export const fmtEuro = (n: number) =>
-  new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n)
-export const fmtDuration = (min: number) => `${Math.floor(min / 60)}u ${String(min % 60).padStart(2, "0")}m`
+  new Intl.NumberFormat(locale.intl, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n)
+export const fmtDuration = (min: number) => i18n.t("flight.duration", { h: Math.floor(min / 60), m: String(min % 60).padStart(2, "0") })
 export const fmtHour = (h: number) => `${String(h).padStart(2, "0")}:00`
-export const fmtStops = (f: FlightOption) => (f.stops === 0 ? "Direct" : `${f.stops} stop · ${f.via.join(", ")}`)
+export const fmtStops = (f: FlightOption) =>
+  f.stops === 0 ? i18n.t("flight.direct") : i18n.t("flight.stops", { count: f.stops, via: f.via.join(", ") })
 
 /** Always scan with max 1 stop: Google then returns direct flights too, and the stops filter stays client-side. */
 const SCAN_MAX_STOPS = 1
@@ -39,13 +41,13 @@ export const visibleAirports = (s: SearchSettings) => enabledAirports(s).filter(
 /** Mirrors the server-side checks so the user sees why a search can't start. */
 export function validate(s: SearchSettings): string | null {
   const homes = enabledAirports(s)
-  if (!/^[A-Z]{3}$/.test(s.dest)) return "Bestemming moet een IATA-code van 3 letters zijn."
-  if (homes.length === 0) return "Kies minstens één vertrekluchthaven."
-  if (homes.some((a) => !/^[A-Z]{3}$/.test(a.code))) return "Luchthavencodes moeten 3 letters zijn."
-  if (s.outTo < s.outFrom || s.retTo < s.retFrom) return "Ongeldige periode."
+  if (!/^[A-Z]{3}$/.test(s.dest)) return i18n.t("validate.dest")
+  if (homes.length === 0) return i18n.t("validate.noAirport")
+  if (homes.some((a) => !/^[A-Z]{3}$/.test(a.code))) return i18n.t("validate.codes")
+  if (s.outTo < s.outFrom || s.retTo < s.retFrom) return i18n.t("validate.period")
   const days = (a: string, b: string) => differenceInCalendarDays(parseISO(b), parseISO(a)) + 1
   const total = homes.length * (days(s.outFrom, s.outTo) + days(s.retFrom, s.retTo))
-  if (total > 600) return `Te veel zoekopdrachten (${total}); maak de periode korter of kies minder luchthavens.`
+  if (total > 600) return i18n.t("validate.tooMany", { count: total })
   return null
 }
 

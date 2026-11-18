@@ -56,7 +56,7 @@ public sealed class SearchService(
     {
         var url = GoogleFlightsClient.SearchUrl(q);
         if (DateOnly.Parse(q.Date) < DateOnly.FromDateTime(DateTime.Today))
-            return new LegResult(q.From, q.To, q.Date, url, false, "Datum ligt in het verleden", []);
+            return new LegResult(q.From, q.To, q.Date, url, false, "Date is in the past", []);
 
         var key = $"leg:v1:{q.From}:{q.To}:{q.Date}:{q.MaxStops}:{q.Adults}";
         if (fresh) await cache.RemoveAsync(key, ct);

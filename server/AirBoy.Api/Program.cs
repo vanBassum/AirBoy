@@ -50,9 +50,9 @@ app.MapGet("/api/search", (
     var homes = origins.ToUpperInvariant().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToArray();
     dest = dest.Trim().ToUpperInvariant();
     if (homes.Length == 0 || !homes.All(iata.IsMatch) || !iata.IsMatch(dest))
-        return Results.BadRequest("Gebruik IATA-codes van 3 letters.");
+        return Results.BadRequest("Use 3-letter IATA codes.");
     if (outTo < outFrom || retTo < retFrom)
-        return Results.BadRequest("Ongeldige periode.");
+        return Results.BadRequest("Invalid period.");
 
     var stops = Math.Clamp(maxStops ?? 0, 0, 2);
     var pax = Math.Clamp(adults ?? 1, 1, 9);
@@ -62,7 +62,7 @@ app.MapGet("/api/search", (
         from h in homes from d in Days(retFrom, retTo) select new LegQuery(dest, h, d, stops, pax)
     ).ToList();
     if (legs.Count > 600)
-        return Results.BadRequest($"Te veel zoekopdrachten ({legs.Count}); maak de periode korter.");
+        return Results.BadRequest($"Too many searches ({legs.Count}); shorten the period.");
 
     // Stop nginx-style reverse proxies from buffering the event stream.
     http.Response.Headers["X-Accel-Buffering"] = "no";

@@ -1,8 +1,10 @@
 import { CalendarDays, GripHorizontal } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { locale } from "@/i18n"
 import { cn } from "@/lib/utils"
 
 // Dates as whole UTC day numbers: simple arithmetic, no DST surprises.
@@ -18,7 +20,7 @@ const todayNum = () => {
   const t = new Date()
   return Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / DAY
 }
-const fmt = (n: number, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("nl-NL", { ...opts, timeZone: "UTC" }).format(dateOf(n))
+const fmt = (n: number, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale.intl, { ...opts, timeZone: "UTC" }).format(dateOf(n))
 const monthStart = (n: number) => {
   const d = dateOf(n)
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / DAY
@@ -28,6 +30,9 @@ const addMonths = (n: number, months: number) => {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + months, 1) / DAY
 }
 
+/** Day numbers of a Monday-to-Sunday week, for the weekday header (2024-01-01 was a Monday). */
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) => Date.UTC(2024, 0, 1) / DAY + i)
+
 type Props = {
   from: string
   to: string
@@ -35,6 +40,7 @@ type Props = {
 }
 
 export function DateRangeField({ from, to, onChange }: Props) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const s = toNum(from)
   const e = toNum(to)
@@ -45,7 +51,7 @@ export function DateRangeField({ from, to, onChange }: Props) {
         <span className="truncate">
           {fmt(s, { day: "numeric", month: "short" })} – {fmt(e, { day: "numeric", month: "short", year: "numeric" })}
         </span>
-        <span className="ml-auto shrink-0 text-xs text-muted-foreground">{e - s + 1} d</span>
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t("dates.daysShort", { count: e - s + 1 })}</span>
       </PopoverTrigger>
       <PopoverContent className="w-[23rem] p-0" align="start">
         {open && <RangeCalendar start={s} end={e} onCommit={(a, b) => onChange(toIso(a), toIso(b))} onDone={() => setOpen(false)} />}
@@ -72,6 +78,7 @@ function RangeCalendar({
   onCommit: (s: number, e: number) => void
   onDone: () => void
 }) {
+  const { t } = useTranslation()
   const today = todayNum()
   const [range, setRange] = useState({ s: start, e: end })
   const rangeRef = useRef(range)
@@ -173,14 +180,14 @@ function RangeCalendar({
       <div className="border-b px-4 py-3">
         <div className="font-semibold">
           {fmt(s, { weekday: "short", day: "numeric", month: "short" })} → {fmt(e, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
-          <span className="ml-2 font-normal text-muted-foreground">{e - s + 1} dagen</span>
+          <span className="ml-2 font-normal text-muted-foreground">{t("dates.days", { count: e - s + 1 })}</span>
         </div>
-        <p className="text-xs text-muted-foreground">Sleep het begin- of eindblok. Sleep het midden om te verschuiven.</p>
+        <p className="text-xs text-muted-foreground">{t("dates.dragHint")}</p>
       </div>
       <div className="grid grid-cols-[3.75rem_repeat(7,1fr)] px-2 pt-2 text-center text-xs text-muted-foreground">
         <span />
-        {["ma", "di", "wo", "do", "vr", "za", "zo"].map((d) => (
-          <span key={d}>{d}</span>
+        {WEEKDAYS.map((d) => (
+          <span key={d}>{fmt(d, { weekday: "short" })}</span>
         ))}
       </div>
       <div
@@ -230,7 +237,7 @@ function RangeCalendar({
       </div>
       <div className="flex justify-end border-t px-3 py-2">
         <Button size="sm" onClick={onDone}>
-          Klaar
+          {t("dates.done")}
         </Button>
       </div>
     </div>

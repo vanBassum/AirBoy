@@ -1,4 +1,5 @@
 import { ArrowLeftRight, Plane } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useMemo, useState } from "react"
 
 import { FiltersPanel } from "@/components/FiltersPanel"
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils"
 type Mode = "oneway" | "return"
 
 export default function App() {
+  const { t } = useTranslation()
   const [settings, setSettings] = useSettings()
   const { state, start, stop } = useSearch()
   const [mode, setMode] = useState<Mode>("oneway")
@@ -32,15 +34,15 @@ export default function App() {
             <Plane className="size-12 -rotate-12 fill-primary text-primary" />
             <div>
               <h1 className="text-4xl font-bold tracking-tight text-[oklch(0.2_0.06_280)]">AirBoy</h1>
-              <p className="text-lg text-[oklch(0.3_0.08_280)]">Vind de beste losse vluchten, met flexibele data en luchthavens.</p>
+              <p className="text-lg text-[oklch(0.3_0.08_280)]">{t("app.tagline")}</p>
             </div>
           </div>
           <div className="flex gap-1 rounded-xl bg-white/70 p-1 shadow-sm backdrop-blur">
             <ModeButton active={mode === "oneway"} onClick={() => setMode("oneway")} icon={<Plane className="size-4" />}>
-              Enkele reis (los)
+              {t("mode.oneWay")}
             </ModeButton>
             <ModeButton active={mode === "return"} onClick={() => setMode("return")} icon={<ArrowLeftRight className="size-4" />}>
-              Retour combineren
+              {t("mode.return")}
             </ModeButton>
           </div>
         </header>

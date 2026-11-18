@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from "react"
 
+import i18n from "@/i18n"
+
 import type { LegResult } from "./types"
 
 export type SearchState = {
@@ -53,7 +55,7 @@ export function useSearch() {
     es.onerror = () => {
       es.close()
       source.current = null
-      setState((s) => ({ ...s, running: false, error: s.done < s.total || s.total === 0 ? "Verbinding met server verbroken." : s.error }))
+      setState((s) => ({ ...s, running: false, error: s.done < s.total || s.total === 0 ? i18n.t("search.disconnected") : s.error }))
     }
   }, [])
 
