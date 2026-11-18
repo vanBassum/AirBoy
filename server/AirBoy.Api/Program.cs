@@ -70,7 +70,6 @@ app.MapGet("/api/search", (
     return TypedResults.ServerSentEvents(Stream(legs, fresh ?? false, search, ct));
 });
 
-// Saved trip plans (opaque JSON owned by the client).
 // Which build is running: commit sha and build time, baked in by CI (see Dockerfile).
 app.MapGet("/api/version", () => Results.Json(new
 {
@@ -78,11 +77,21 @@ app.MapGet("/api/version", () => Results.Json(new
     built = Environment.GetEnvironmentVariable("AIRBOY_BUILT") is { Length: > 0 } b ? b : null,
 }));
 
-app.MapGet("/api/plans", async (PlanStore plans, CancellationToken ct) => Results.Json(await plans.ListAsync(ct)));
-app.MapPut("/api/plans/{id}", async (string id, JsonObject plan, PlanStore plans, CancellationToken ct) =>
-    Results.Json(await plans.SaveAsync(id, plan, ct)));
-app.MapDelete("/api/plans/{id}", async (string id, PlanStore plans, CancellationToken ct) =>
-    await plans.DeleteAsync(id, ct) ? Results.NoContent() : Results.NotFound());
+// Saved trip plans (opaque JSON owned by the client), private per user.
+// The user comes from Authentik forward-auth: Traefik replaces these headers with the
+// outpost's answer, and the container is only reachable through Traefik. Without
+// Authentik (local run) everything belongs to "local".
+static string Owner(HttpContext http) =>
+    http.Request.Headers["X-authentik-uid"].FirstOrDefault() is { Length: > 0 } uid ? uid
+    : http.Request.Headers["X-authentik-username"].FirstOrDefault() is { Length: > 0 } name ? name
+    : "local";
+
+app.MapGet("/api/plans", async (HttpContext http, PlanStore plans, CancellationToken ct) =>
+    Results.Json(await plans.ListAsync(Owner(http), ct)));
+app.MapPut("/api/plans/{id}", async (string id, JsonObject plan, HttpContext http, PlanStore plans, CancellationToken ct) =>
+    await plans.SaveAsync(Owner(http), id, plan, ct) is { } saved ? Results.Json(saved) : Results.NotFound());
+app.MapDelete("/api/plans/{id}", async (string id, HttpContext http, PlanStore plans, CancellationToken ct) =>
+    await plans.DeleteAsync(Owner(http), id, ct) ? Results.NoContent() : Results.NotFound());
 
 app.MapDelete("/api/cache", async (HybridCache cache, FileDistributedCache files) =>
 {
